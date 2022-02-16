@@ -9,6 +9,7 @@ const saltRounds = 10;
 
 // Require the User model in order to interact with the database
 const User = require("../models/User.model");
+const Post = require("../models/Post.model");
 
 // require (import) middleware functions
 const { isLoggedIn, isLoggedOut } = require("../middleware/route-guard.js");
@@ -18,10 +19,10 @@ const { isLoggedIn, isLoggedOut } = require("../middleware/route-guard.js");
 ////////////////////////////////////////////////////////////////////////
 
 // .get() route ==> to display the signup form to users
-router.get("/signup", isLoggedOut, (req, res) => res.render("auth/signup"));
+router.get("/signup", /*isLoggedOut,*/ (req, res) => res.render("auth/signup"));
 
 // .post() route ==> to process form data
-router.post("/signup", isLoggedOut, (req, res, next) => {
+router.post("/signup", /*isLoggedOut,*/ (req, res, next) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
@@ -76,10 +77,10 @@ router.post("/signup", isLoggedOut, (req, res, next) => {
 ////////////////////////////////////////////////////////////////////////
 
 // .get() route ==> to display the login form to users
-router.get("/login", isLoggedOut, (req, res) => res.render("auth/login"));
+router.get("/login", /*isLoggedOut,*/ (req, res) => res.render("auth/login"));
 
 // .post() login route ==> to process form data
-router.post("/login", isLoggedOut, (req, res, next) => {
+router.post("/login", /*isLoggedOut,*/ (req, res, next) => {
   const { email, password } = req.body;
 
   if (email === "" || password === "") {
@@ -95,7 +96,9 @@ router.post("/login", isLoggedOut, (req, res, next) => {
         res.render("auth/login", { errorMessage: "Email is not registered. Try with other email." });
         return;
       } else if (bcryptjs.compareSync(password, user.passwordHash)) {
-        req.session.user = user;
+        req.session.currentUserId = user._id;
+        req.session.currentUser = user;
+        console.log("HEEEEEEEEEEEEEEEEEEEE")
         res.redirect("/user-profile");
       } else {
         res.render("auth/login", { errorMessage: "Incorrect password." });
@@ -104,17 +107,54 @@ router.post("/login", isLoggedOut, (req, res, next) => {
     .catch((error) => next(error));
 });
 
+//////////////LOGIN ///////////////
+
+
+router
+.get("/user-profile", /*isLoggedIn,*/ (req, res) => {
+  res.render("users/user-profile", { user: req.session.currentUser });
+})
+
+////////////// POST///////////////////////////
+/////////////////////////////////////////////
+
+
+router.get("/post", (req, res)=>{
+  res.render("users/post", { user: req.session.currentUser })
+})
+
+
+router.post("/post", (req, res, next)=>{
+  const content = req.body.content;
+  const creatorId = req.session.currentUserId;
+  const picPath = req.body.picPath;
+  const picName = req.body.picName;
+  
+  
+
+  Post.create({
+    content,
+    creatorId,
+    picPath,
+    picName
+  }).then(res.redirect("/"))
+
+})
+
+
+
+
+
 ////////////////////////////////////////////////////////////////////////
 ///////////////////////////// LOGOUT ////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-router.post("/logout", isLoggedIn, (req, res) => {
+router.post("/logout", /*isLoggedIn,*/ (req, res) => {
+  
   req.session.destroy();
   res.redirect("/");
 });
 
-router.get("/user-profile", isLoggedIn, (req, res) => {
-  res.render("users/user-profile");
-});
+
 
 module.exports = router;
